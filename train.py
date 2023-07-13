@@ -9,6 +9,7 @@ import torch.optim as optim
 from progressbar import ProgressBar
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import Dataset, DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 from config import gen_args
 from data import PhysicsDataset
@@ -37,6 +38,20 @@ if args.gen_data:
 
 args.stat = datasets['train'].stat
 
+is_wandb = False
+if is_wandb:
+    import wandb
+    wandb.init(
+    project="Object Centric CKO",
+    
+    # track hyperparameters and run metadata
+    config={
+    "Object Centric": False,
+    "Notes": ""
+    }
+)
+
+writer = SummaryWriter()
 
 class ShuffledDataset(Dataset):
     def __init__(self,
@@ -350,6 +365,26 @@ for epoch in range(st_epoch, args.n_epoch):
                 print(log)
                 log_fout.write(log + '\n')
                 log_fout.flush()
+                if phase =='train':
+                    writer.add_scalar('Loss/train', meter_loss.avg, epoch)
+                    writer.add_scalar('AE_Loss/train', meter_loss_ae.avg, epoch)
+                    writer.add_scalar('Pred_Loss/train', meter_loss_pred.avg, epoch)
+                    writer.add_scalar('Loss_Metric/train', meter_loss_metric.avg, epoch)
+                    if is_wandb:
+                        wandb.log({"Loss/train": meter_loss.avg,
+                                    "AE_Loss/train": meter_loss_ae.avg,
+                                    "Pred_Loss/train":meter_loss_pred.avg,
+                                    "Loss_Metric/train":meter_loss_metric.avg })
+                if phase =='valid':
+                    writer.add_scalar('Loss/valid', meter_loss.avg, epoch)
+                    writer.add_scalar('AE_Loss/valid', meter_loss_ae.avg, epoch)
+                    writer.add_scalar('Pred_Loss/valid', meter_loss_pred.avg, epoch)
+                    writer.add_scalar('Lodd_Metric/valid', meter_loss_metric.avg, epoch)
+                    if is_wandb:
+                        wandb.log({"Loss/valid": meter_loss.avg,
+                                    "AE_Loss/valid": meter_loss_ae.avg,
+                                    "Pred_Loss/valid":meter_loss_pred.avg,
+                                    "Loss_Metric/valid":meter_loss_metric.avg })
 
             if phase == 'train' and i % args.ckp_per_iter == 0:
                 torch.save(model.state_dict(), '%s/net_epoch_%d_iter_%d.pth' % (args.outf, epoch, i))
