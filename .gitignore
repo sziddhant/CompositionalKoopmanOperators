@@ -23,4 +23,6 @@ dump_Soft/train*
 dump_Swim/eval*
 dump_Swim/shoot*
 dump_Swim/train*
+wandb
+runs
 

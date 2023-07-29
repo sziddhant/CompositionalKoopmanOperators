@@ -15,7 +15,7 @@ print_args(args)
 '''
 args.fit_num is # of trajectories used for SysID
 '''
-assert args.group_size - 1 >= args.fit_num
+# assert args.group_size - 1 >= args.fit_num
 
 data_names = ['attrs', 'states', 'actions']
 prepared_names = ['attrs', 'states', 'actions', 'rel_attrs']

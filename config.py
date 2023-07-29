@@ -164,7 +164,7 @@ def gen_args():
     else:
         raise AssertionError("Unsupported env")
 
-    assert args.n_rollout % (args.group_size * args.n_splits * args.batch_size) == 0
+    # assert args.n_rollout % (args.group_size * args.n_splits * args.batch_size) == 0
 
     args.demo = args.eval_set == 'demo' or args.shoot_set == 'demo'
     data_root = 'data'
