@@ -38,7 +38,7 @@ if args.gen_data:
 
 args.stat = datasets['train'].stat
 
-is_wandb = False
+is_wandb = True
 if is_wandb:
     import wandb
     wandb.init(
@@ -46,10 +46,38 @@ if is_wandb:
     
     # track hyperparameters and run metadata
     config={
-    "Object Centric": False,
-    "Notes": ""
+    "Object Centric": True,
+    "Notes": "Fit_num and Batch size 64, Updates loss"
     }
 )
+
+def object_centric(states_og):
+    states = states_og.clone().detach()
+    bs = states.shape[0]
+    for b in range(bs):
+        first_position = states[b][0][0].clone().detach() # first step, first node, first position
+        states[b,:,:,0] -= first_position[0]
+        states[b,:,:,1] -= first_position[1]
+        states[b,:,:,2] -= first_position[2]
+        states[b,:,:,3] -= first_position[3]
+    return states
+
+def reverse_object_centric(states,states_og):
+    shp = states.shape
+    shp1 = list(states_og.shape)
+    shp1[1] -=1
+    states = torch.reshape(states,shp1)
+
+    bs = states.shape[0]
+    for b in range(bs):
+        first_position = states_og[b][0][0].clone().detach() # first step, first node, first position
+        states[b,:,:,0] += first_position[0]
+        states[b,:,:,1] += first_position[1]
+        states[b,:,:,2] += first_position[2]
+        states[b,:,:,3] += first_position[3]
+    states = torch.reshape(states, shp)
+    return states
+
 
 writer = SummaryWriter()
 
@@ -219,6 +247,7 @@ for epoch in range(st_epoch, args.n_epoch):
         meter_loss_metric = AverageMeter()
         meter_loss_ae = AverageMeter()
         meter_loss_pred = AverageMeter()
+        meter_loss_pred_oc = AverageMeter()
         meter_fit_error = AverageMeter()
         meter_dist_g = AverageMeter()
         meter_dist_s = AverageMeter()
@@ -230,19 +259,24 @@ for epoch in range(st_epoch, args.n_epoch):
         for i, (seq_data, fit_data) in bar(enumerate(loader)):
 
             attrs, states, actions, rel_attrs = seq_data
-            attrs_2, states_2, actions_2, rel_attrs_2 = fit_data
+            attrs_2, states_2_og, actions_2, rel_attrs_2 = fit_data
+            states_2 = object_centric(states_2_og)
             # print('attrs', attrs.shape)           bs x len_seq x num_obj x attr_dim
             # print('states', states.shape)         bs x len_seq x num_obj x state_dim
             # print('actions', actions.shape)       bs x len_seq x num_obj x action_dim
             # print('rel_attrs', rel_attrs.shape)   bs x len_seq x num_obj x num_obj x rel_dim
 
             if use_gpu:
-                attrs_2, states_2, actions_2, rel_attrs_2 = [x.cuda() for x in fit_data]
+                attrs_2, states_2_og, actions_2, rel_attrs_2 = [x.cuda() for x in fit_data]
+                states_2 = object_centric(states_2_og)
             fit_data = [attrs_2, states_2, actions_2, rel_attrs_2]
 
             with torch.set_grad_enabled(phase == 'train'):
                 if use_gpu:
-                    attrs, states, actions, rel_attrs = [x.cuda() for x in seq_data]
+                    attrs, states_og, actions, rel_attrs = [x.cuda() for x in seq_data]
+                # print(states.shape) # batch_size, sequence length, num_nodes,
+                states = object_centric(states_og)
+
                 data = [attrs, states, actions, rel_attrs]
 
                 T = args.len_seq
@@ -326,17 +360,24 @@ for epoch in range(st_epoch, args.n_epoch):
                 rel_attrs_for_pred_flat = get_flat(data_for_pred[3])
                 decode_s_for_pred = model.to_s(attrs=attrs_for_pred_flat, gcodes=get_flat(G_for_pred),
                                                rel_attrs=rel_attrs_for_pred_flat, pstep=args.pstep)
+                
+                loss_prediction_oc = F.l1_loss(
+                    decode_s_for_pred, states[:, 1:].reshape(decode_s_for_pred.shape))
+
+                ## Reverse decode_s_for_pred to non object centric
+                decode_s_for_pred = reverse_object_centric(decode_s_for_pred,states_og)
 
                 loss_auto_encode = F.l1_loss(
                     decode_s_for_ae, states[:, :T + 1].reshape(decode_s_for_ae.shape))
                 loss_prediction = F.l1_loss(
-                    decode_s_for_pred, states[:, 1:].reshape(decode_s_for_pred.shape))
+                    decode_s_for_pred, states_og[:, 1:].reshape(decode_s_for_pred.shape))
 
-                loss = loss_auto_encode + loss_prediction + loss_metric * args.lambda_loss_metric
+                loss = loss_auto_encode + loss_prediction +  loss_metric * args.lambda_loss_metric
 
                 meter_loss_metric.update(loss_metric.item(), bs)
                 meter_loss_ae.update(loss_auto_encode.item(), bs)
                 meter_loss_pred.update(loss_prediction.item(), bs)
+                meter_loss_pred_oc.update(loss_prediction_oc.item(),bs)
 
                 meter_dist_g.update(dist_g.mean().item(), bs)
                 meter_dist_s.update(dist_s.mean().item(), bs)
@@ -365,26 +406,7 @@ for epoch in range(st_epoch, args.n_epoch):
                 print(log)
                 log_fout.write(log + '\n')
                 log_fout.flush()
-                if phase =='train':
-                    writer.add_scalar('Loss/train', meter_loss.avg, epoch)
-                    writer.add_scalar('AE_Loss/train', meter_loss_ae.avg, epoch)
-                    writer.add_scalar('Pred_Loss/train', meter_loss_pred.avg, epoch)
-                    writer.add_scalar('Loss_Metric/train', meter_loss_metric.avg, epoch)
-                    if is_wandb:
-                        wandb.log({"Loss/train": meter_loss.avg,
-                                    "AE_Loss/train": meter_loss_ae.avg,
-                                    "Pred_Loss/train":meter_loss_pred.avg,
-                                    "Loss_Metric/train":meter_loss_metric.avg })
-                if phase =='valid':
-                    writer.add_scalar('Loss/valid', meter_loss.avg, epoch)
-                    writer.add_scalar('AE_Loss/valid', meter_loss_ae.avg, epoch)
-                    writer.add_scalar('Pred_Loss/valid', meter_loss_pred.avg, epoch)
-                    writer.add_scalar('Lodd_Metric/valid', meter_loss_metric.avg, epoch)
-                    if is_wandb:
-                        wandb.log({"Loss/valid": meter_loss.avg,
-                                    "AE_Loss/valid": meter_loss_ae.avg,
-                                    "Pred_Loss/valid":meter_loss_pred.avg,
-                                    "Loss_Metric/valid":meter_loss_metric.avg })
+
 
             if phase == 'train' and i % args.ckp_per_iter == 0:
                 torch.save(model.state_dict(), '%s/net_epoch_%d_iter_%d.pth' % (args.outf, epoch, i))
@@ -393,6 +415,30 @@ for epoch in range(st_epoch, args.n_epoch):
         print(log)
         log_fout.write(log + '\n')
         log_fout.flush()
+        if phase =='train':
+            writer.add_scalar('Loss/train', meter_loss.avg, epoch)
+            writer.add_scalar('AE_Loss/train', meter_loss_ae.avg, epoch)
+            writer.add_scalar('Pred_Loss/train', meter_loss_pred.avg, epoch)
+            writer.add_scalar('Pred_Loss_OC/train', meter_loss_pred_oc.avg, epoch)
+            writer.add_scalar('Loss_Metric/train', meter_loss_metric.avg, epoch)
+            if is_wandb:
+                wandb.log({"Loss/train": meter_loss.avg,
+                            "AE_Loss/train": meter_loss_ae.avg,
+                            "Pred_Loss/train":meter_loss_pred.avg,
+                            "Pred_Loss_OC/train":meter_loss_pred_oc.avg,
+                            "Loss_Metric/train":meter_loss_metric.avg })
+        if phase =='valid':
+            writer.add_scalar('Loss/valid', meter_loss.avg, epoch)
+            writer.add_scalar('AE_Loss/valid', meter_loss_ae.avg, epoch)
+            writer.add_scalar('Pred_Loss/valid', meter_loss_pred.avg, epoch)
+            writer.add_scalar('Pred_Loss_OC/valid', meter_loss_pred_oc.avg, epoch)
+            writer.add_scalar('Lodd_Metric/valid', meter_loss_metric.avg, epoch)
+            if is_wandb:
+                wandb.log({"Loss/valid": meter_loss.avg,
+                            "AE_Loss/valid": meter_loss_ae.avg,
+                            "Pred_Loss/valid":meter_loss_pred.avg,
+                            "Pred_Loss_OC/valid":meter_loss_pred_oc.avg,
+                            "Loss_Metric/valid":meter_loss_metric.avg })
 
         if phase == 'valid' and not args.eval:
             scheduler.step(meter_loss.avg)
