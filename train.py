@@ -58,8 +58,8 @@ def object_centric(states_og):
         first_position = states[b][0][0].clone().detach() # first step, first node, first position
         states[b,:,:,0] -= first_position[0]
         states[b,:,:,1] -= first_position[1]
-        states[b,:,:,2] -= first_position[2]
-        states[b,:,:,3] -= first_position[3]
+        # states[b,:,:,2] -= first_position[2]
+        # states[b,:,:,3] -= first_position[3]
     return states
 
 def reverse_object_centric(states,states_og):
@@ -73,8 +73,8 @@ def reverse_object_centric(states,states_og):
         first_position = states_og[b][0][0].clone().detach() # first step, first node, first position
         states[b,:,:,0] += first_position[0]
         states[b,:,:,1] += first_position[1]
-        states[b,:,:,2] += first_position[2]
-        states[b,:,:,3] += first_position[3]
+        # states[b,:,:,2] += first_position[2]
+        # states[b,:,:,3] += first_position[3]
     states = torch.reshape(states, shp)
     return states
 
