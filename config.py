@@ -94,8 +94,8 @@ def gen_args():
     if args.env == 'Rope':
         args.data_names = ['attrs', 'states', 'actions']
 
-        args.n_rollout = 10000
-        args.train_valid_ratio = 0.9
+        args.n_rollout = 4000
+        args.train_valid_ratio = 0.5
 
         args.time_step = 101
         # one hot to indicate root/children
@@ -164,7 +164,7 @@ def gen_args():
     else:
         raise AssertionError("Unsupported env")
 
-    # assert args.n_rollout % (args.group_size * args.n_splits * args.batch_size) == 0
+    assert args.n_rollout % (args.group_size * args.n_splits * args.batch_size) == 0
 
     args.demo = args.eval_set == 'demo' or args.shoot_set == 'demo'
     data_root = 'data'

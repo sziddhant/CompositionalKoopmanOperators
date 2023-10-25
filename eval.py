@@ -52,6 +52,7 @@ if not args.baseline:
     if args.eval_epoch == -1:
         model_path = os.path.join(args.outf, 'net_best.pth')
     else:
+        args.outf += '(object_centric)'
         model_path = os.path.join(args.outf, 'net_epoch_%d_iter_%d.pth' % (args.eval_epoch, args.eval_iter))
     print("Loading saved checkpoint from %s" % model_path)
     device = torch.device('cuda:0') if use_gpu else torch.device('cpu')
@@ -86,6 +87,7 @@ def get_more_trajectories(roll_idx):
 def eval(idx_rollout, video=True):
     print(f'\n=== Forward Simulation on Example {roll_idx} ===')
 
+    print(os.path.join(data_dir, str(idx_rollout) + '.rollout.h5'))
     seq_data = load_data(prepared_names, os.path.join(data_dir, str(idx_rollout) + '.rollout.h5'))
     attrs, states, actions, rel_attrs = [to_var(d.copy(), use_gpu=use_gpu) for d in seq_data]
 

@@ -12,11 +12,15 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from config import gen_args
+# from data_subtract_constant import PhysicsDataset
+# from data_subtract_constant import load_data
+# from data_object_centric import PhysicsDataset
+# from data_object_centric import load_data
 from data import PhysicsDataset
 from data import load_data
 from models.CompositionalKoopmanOperators import CompositionalKoopmanOperators
 from utils import count_parameters, Tee, AverageMeter, rand_int, mix_iters, get_flat, print_args
-
+np.random.seed(42)
 args = gen_args()
 
 os.system('mkdir -p ' + args.outf)
@@ -46,23 +50,25 @@ if is_wandb:
     
     # track hyperparameters and run metadata
     config={
-    "Object Centric": True,
-    "Notes": "Fit_num and Batch size 64, Updates loss"
+    "Object Centric": False,
+    "Notes": "Baseline Fit_num and Batch size 32, 4k 50/50"
     }
 )
 
 def object_centric(states_og):
+    # return states_og
     states = states_og.clone().detach()
     bs = states.shape[0]
     for b in range(bs):
         first_position = states[b][0][0].clone().detach() # first step, first node, first position
         states[b,:,:,0] -= first_position[0]
         states[b,:,:,1] -= first_position[1]
-        states[b,:,:,2] -= first_position[2]
-        states[b,:,:,3] -= first_position[3]
+        # states[b,:,:,2] -= first_position[2]
+        # states[b,:,:,3] -= first_position[3]
     return states
 
 def reverse_object_centric(states,states_og):
+    # return states
     shp = states.shape
     shp1 = list(states_og.shape)
     shp1[1] -=1
@@ -73,8 +79,8 @@ def reverse_object_centric(states,states_og):
         first_position = states_og[b][0][0].clone().detach() # first step, first node, first position
         states[b,:,:,0] += first_position[0]
         states[b,:,:,1] += first_position[1]
-        states[b,:,:,2] += first_position[2]
-        states[b,:,:,3] += first_position[3]
+        # states[b,:,:,2] += first_position[2]
+        # states[b,:,:,3] += first_position[3]
     states = torch.reshape(states, shp)
     return states
 
@@ -260,7 +266,9 @@ for epoch in range(st_epoch, args.n_epoch):
 
             attrs, states, actions, rel_attrs = seq_data
             attrs_2, states_2_og, actions_2, rel_attrs_2 = fit_data
-            states_2 = object_centric(states_2_og)
+            
+            # states_2 = object_centric(states_2_og)
+            states_2 = states_2_og
             # print('attrs', attrs.shape)           bs x len_seq x num_obj x attr_dim
             # print('states', states.shape)         bs x len_seq x num_obj x state_dim
             # print('actions', actions.shape)       bs x len_seq x num_obj x action_dim
@@ -268,14 +276,16 @@ for epoch in range(st_epoch, args.n_epoch):
 
             if use_gpu:
                 attrs_2, states_2_og, actions_2, rel_attrs_2 = [x.cuda() for x in fit_data]
-                states_2 = object_centric(states_2_og)
+                # states_2 = object_centric(states_2_og).cuda()
+                states_2 = states_2_og
             fit_data = [attrs_2, states_2, actions_2, rel_attrs_2]
 
             with torch.set_grad_enabled(phase == 'train'):
                 if use_gpu:
                     attrs, states_og, actions, rel_attrs = [x.cuda() for x in seq_data]
                 # print(states.shape) # batch_size, sequence length, num_nodes,
-                states = object_centric(states_og)
+                    # states = object_centric(states_og).cuda()
+                    states = states_og
 
                 data = [attrs, states, actions, rel_attrs]
 
@@ -365,12 +375,14 @@ for epoch in range(st_epoch, args.n_epoch):
                     decode_s_for_pred, states[:, 1:].reshape(decode_s_for_pred.shape))
 
                 ## Reverse decode_s_for_pred to non object centric
-                decode_s_for_pred = reverse_object_centric(decode_s_for_pred,states_og)
+                # decode_s_for_pred = reverse_object_centric(decode_s_for_pred,states_og).cuda()
 
                 loss_auto_encode = F.l1_loss(
                     decode_s_for_ae, states[:, :T + 1].reshape(decode_s_for_ae.shape))
                 loss_prediction = F.l1_loss(
                     decode_s_for_pred, states_og[:, 1:].reshape(decode_s_for_pred.shape))
+                # loss_prediction = F.l1_loss(
+                #     decode_s_for_pred, states[:, 1:].reshape(decode_s_for_pred.shape))
 
                 loss = loss_auto_encode + loss_prediction +  loss_metric * args.lambda_loss_metric
 

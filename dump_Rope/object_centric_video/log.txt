@@ -1,0 +1,21 @@
+Loading saved checkpoint from dump_Rope/train_Rope_CKO_pstep_2_lenseq_64_gdim_32_bs_32_structured/net_epoch_600_iter_0.pth
+
+=== Forward Simulation on Example 0 ===
+Save video as dump_Rope/eval_CKO_pstep_2_lenseq_64_gdim_32_fitnum_32_structured_valid_epoch_600_iter_0/0.pred.avi
+Save images to dump_Rope/eval_CKO_pstep_2_lenseq_64_gdim_32_fitnum_32_structured_valid_epoch_600_iter_0/0.pred_img
+
+=== Forward Simulation on Example 400 ===
+Save video as dump_Rope/eval_CKO_pstep_2_lenseq_64_gdim_32_fitnum_32_structured_valid_epoch_600_iter_0/400.pred.avi
+Save images to dump_Rope/eval_CKO_pstep_2_lenseq_64_gdim_32_fitnum_32_structured_valid_epoch_600_iter_0/400.pred_img
+
+=== Forward Simulation on Example 800 ===
+Save video as dump_Rope/eval_CKO_pstep_2_lenseq_64_gdim_32_fitnum_32_structured_valid_epoch_600_iter_0/800.pred.avi
+Save images to dump_Rope/eval_CKO_pstep_2_lenseq_64_gdim_32_fitnum_32_structured_valid_epoch_600_iter_0/800.pred_img
+
+=== Forward Simulation on Example 1200 ===
+Save video as dump_Rope/eval_CKO_pstep_2_lenseq_64_gdim_32_fitnum_32_structured_valid_epoch_600_iter_0/1200.pred.avi
+Save images to dump_Rope/eval_CKO_pstep_2_lenseq_64_gdim_32_fitnum_32_structured_valid_epoch_600_iter_0/1200.pred_img
+
+=== Forward Simulation on Example 1600 ===
+Save video as dump_Rope/eval_CKO_pstep_2_lenseq_64_gdim_32_fitnum_32_structured_valid_epoch_600_iter_0/1600.pred.avi
+Save images to dump_Rope/eval_CKO_pstep_2_lenseq_64_gdim_32_fitnum_32_structured_valid_epoch_600_iter_0/1600.pred_img

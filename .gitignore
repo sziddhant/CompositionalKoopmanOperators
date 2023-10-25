@@ -5,8 +5,10 @@ __pycache__
 *.swp
 *.swoarchived
 models/__pycache__
+data/*
 data/data_Rope/valid
 data/data_Rope/train
+data/data_Rope/train*
 data/data_Rope/stat.h5
 data/data_Soft/valid
 data/data_Soft/train
