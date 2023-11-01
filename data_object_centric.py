@@ -166,7 +166,7 @@ def gen_Rope(info):
             actions = engine.get_action()
 
             n_obj = engine.num_obj
-##############################################################constant shift 2 try
+############################################################## obj x
             pos = states[:, :2].copy()
             vec = states[:, 2:].copy()
             if j == 0:

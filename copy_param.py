@@ -24,8 +24,8 @@ def copy_param_files(source_data_dir, dest_data_dir):
                 shutil.copy2(source_file_path, destination_path)
 
 # Specify the path to your original and new data directories
-source_data_dir = "./data/data_Rope/train_last"
-dest_data_dir = "./data/data_Rope/train"
+source_data_dir = "./data/data_Rope/valid"
+dest_data_dir = "./data/data_Rope/valid_fixed"
 
 # Copy all .param files
 copy_param_files(source_data_dir, dest_data_dir)

@@ -12,12 +12,18 @@ data_names = ['attrs', 'states', 'actions']
 prepared_names = ['attrs', 'states', 'actions', 'rel_attrs']
 
 stat_path = os.path.join(args.dataf, 'stat.h5')
+if args.obj != "" and args.obj != "_baseline":
+    stat_path = os.path.join(args.dataf, 'stat_fixed.h5')
 stat = load_data(data_names, stat_path)
 
 
 def prepare_seq(info):
     phase, rollout_idx = info
+    if args.obj != "" and args.obj != "_baseline":
+        phase += "_fixed"
+    
     data_dir = os.path.join(args.dataf, phase)
+    # print(f'working preprocess data in folder {data_dir}')
     if phase == 'extra' and gethostname().startswith('netmit'):
         data_dir = args.dataf + '_' + phase
 
@@ -65,5 +71,5 @@ num_valid = args.n_rollout - num_train
 infos = [(n_workers, idx, num_train, 'train') for idx in range(n_workers)]
 pool.map(sub_thread, infos)
 
-infos = [(n_workers, idx, num_valid, 'valid') for idx in range(n_workers)]
-pool.map(sub_thread, infos)
+# infos = [(n_workers, idx, num_valid, 'valid') for idx in range(n_workers)]
+# pool.map(sub_thread, infos)
