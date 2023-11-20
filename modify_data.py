@@ -65,11 +65,6 @@ def shift_dataset(source_data_dir, dest_data_dir):
     
     return mean_states, var_states, std_states, count
 
-# # Specify the path to your source and destination data
-# source_data_dir = "./data/data_Rope/train"
-# dest_data_dir = "./data/data_Rope/train_fixed"
-# shift_dataset(source_data_dir, dest_data_dir)
-
 # Specify the path to your updated data and stat file
 source_data_dir = "./data/data_Rope/train"
 dest_data_dir = "./data/data_Rope/train_fixed"

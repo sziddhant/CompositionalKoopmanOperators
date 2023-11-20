@@ -71,7 +71,7 @@ class RopeEngine(Engine):
 
     def __init__(self, dt, state_dim, action_dim, param_dim,
                  num_mass_range=[4, 8], k_range=[500., 1500.], gravity_range=[-2., -8.],
-                 position_range=[-0.6, 0.6], bihop=True):
+                 position_range=[-5, 5], bihop=True):
 
         # state_dim = 4
         # action_dim = 1
@@ -142,7 +142,7 @@ class RopeEngine(Engine):
 
             if i == 0:
                 # fix the first mass to a specific height
-                move_joint = pymunk.GrooveJoint(self.space.static_body, body, (-2, y), (2, y), (0, 0))
+                move_joint = pymunk.GrooveJoint(self.space.static_body, body, (-20, y), (20, y), (0, 0))
                 self.space.add(body, shape, move_joint)
             else:
                 self.space.add(body, shape)
@@ -245,7 +245,7 @@ class RopeEngine(Engine):
                 for j in range(n_ball):
                     circle = Circle((states_gt[i, j, 0], states_gt[i, j, 1]), radius=self.radius * 5 / 4)
                     circles.append(circle)
-                    circles_color.append('orangered')
+                    circles_color.append('limegreen')
                 pc = PatchCollection(circles, facecolor=circles_color, linewidth=0, alpha=1.)
                 ax.add_collection(pc)
 

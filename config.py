@@ -85,7 +85,7 @@ parser.add_argument('--roll_step', type=int, default=40)
 parser.add_argument('--shoot_epoch', type=int, default=-1)
 parser.add_argument('--shoot_iter', type=int, default=-1)
 
-
+parser.add_argument('--obj', default="")
 
 
 def gen_args():

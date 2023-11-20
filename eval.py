@@ -19,7 +19,9 @@ args.fit_num is # of trajectories used for SysID
 
 data_names = ['attrs', 'states', 'actions']
 prepared_names = ['attrs', 'states', 'actions', 'rel_attrs']
-
+# if args.obj != "baseline" and args.obj != "":
+#     args.eval_set += '_fixed'
+#     args.stat_path = args.dataf + '/' + 'stat_fixed.h5'
 data_dir = os.path.join(args.dataf, args.eval_set)
 
 print(f"Load stored dataset statistics from {args.stat_path}!")
@@ -52,7 +54,8 @@ if not args.baseline:
     if args.eval_epoch == -1:
         model_path = os.path.join(args.outf, 'net_best.pth')
     else:
-        args.outf += '(object_centric)'
+        
+        args.outf += args.obj
         model_path = os.path.join(args.outf, 'net_epoch_%d_iter_%d.pth' % (args.eval_epoch, args.eval_iter))
     print("Loading saved checkpoint from %s" % model_path)
     device = torch.device('cuda:0') if use_gpu else torch.device('cpu')
@@ -181,9 +184,21 @@ def eval(idx_rollout, video=True):
         s_pred[step + 1:step + 2] = to_var(s_pred_next, use_gpu=use_gpu)
 
     if video:
+        save_path = "pred_states" + args.obj + ".txt"
+        with open(save_path, 'a') as f:
+            f.write("-----------------------------------------------------------------------\n")
+            for sublist in states_pred:
+                line = '\n'.join(map(str, sublist))
+                f.write(f"{line}\n")
+                f.write("\n")
         engine.render(states_pred, seq_data[2], param, act_scale=args.act_scale, video=True, image=True,
                       path=os.path.join(args.evalf, str(idx_rollout) + '.pred'),
                       states_gt=states_gt)
+
+        # print(states_gt.shape)
+        # for t in states_gt:
+        #     print(t)
+        #     break
 
 if __name__ == '__main__':
 
@@ -195,5 +210,5 @@ if __name__ == '__main__':
     if args.demo:
         ls_rollout_idx = np.arange(8) * 25
 
-    for roll_idx in ls_rollout_idx:
+    for roll_idx in ls_rollout_idx[:3]:
         eval(roll_idx)

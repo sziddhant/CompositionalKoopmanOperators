@@ -27,6 +27,7 @@ def shift_dataset(source_data_dir, dest_data_dir):
     sum_squares_states, sum_squares_actions, sum_squares_attrs = None, None, None
     count = 0
 
+    attrs_all, states_all, actions_all = [], [], []
     # Check if destination directory exists, create it if not
     if not os.path.exists(dest_data_dir):
         os.makedirs(dest_data_dir)
@@ -34,27 +35,14 @@ def shift_dataset(source_data_dir, dest_data_dir):
     # Iterate over all rollout directories in the dataset
     for rollout_dir in os.listdir(source_data_dir):
         full_source_rollout_dir = os.path.join(source_data_dir, rollout_dir)
-        full_dest_rollout_dir = os.path.join(dest_data_dir, rollout_dir)
 
         if os.path.isdir(full_source_rollout_dir):
             initial_pos = None
-
-            # Copy the directory structure and non-h5 files
-            if not os.path.exists(full_dest_rollout_dir):
-                shutil.copytree(full_source_rollout_dir, full_dest_rollout_dir, ignore=shutil.ignore_patterns('*.h5'))
-
-            initial_file_path = os.path.join(full_source_rollout_dir, '0.h5')
-            with h5py.File(initial_file_path, 'r') as initial_hf:
-                initial_states = initial_hf['states'][:]  # Assuming the dataset name is 'states'
-                initial_pos = initial_states[0, 0].copy()  # Get the initial position of the first ball
-
             attrs_all, states_all, actions_all = [], [], []
-
             # Iterate over all h5 files in the source rollout directory
             for filename in sorted(os.listdir(full_source_rollout_dir)):
                 if filename.endswith('.h5') and not filename.endswith('.rollout.h5'):
                     source_file_path = os.path.join(full_source_rollout_dir, filename)
-                    dest_file_path = os.path.join(full_dest_rollout_dir, filename)
 
                     # Open the source h5 file and read data
                     with h5py.File(source_file_path, 'r') as source_hf:
@@ -62,16 +50,6 @@ def shift_dataset(source_data_dir, dest_data_dir):
                         actions = source_hf['actions'][:]  # Assuming the dataset name is 'actions'
                         attrs = source_hf['attrs'][:]  # Assuming the dataset name is 'attrs'
 
-                        # Subtract the initial position from all positions
-                        states[:, 0] -= initial_pos
-
-                        # Save the modified data to the destination file
-                        with h5py.File(dest_file_path, 'w') as dest_hf:
-                            dest_hf.create_dataset('states', data=states)
-                            # If actions and attrs are not modified, you can just copy them.
-                            dest_hf.create_dataset('actions', data=actions)
-                            dest_hf.create_dataset('attrs', data=attrs)
-                        
                         attrs_all.append(attrs)
                         states_all.append(states)
                         actions_all.append(actions)
