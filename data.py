@@ -190,6 +190,12 @@ def gen_Rope(info):
 
     act_scale = 2.
     ret_scale = 1.
+    
+    # dynamic action
+    target_x = 0  # Initial target
+    x_bounds = (-20, 20)  # Bounds for x
+    threshold = 1  # Threshold for reaching target
+    delta_target = 5  # Change in target
 
     # attr, state, action
     stats = [init_stat(attr_dim), init_stat(state_dim), init_stat(action_dim)]
@@ -203,6 +209,10 @@ def gen_Rope(info):
     assert args.n_rollout % args.n_splits == 0
 
     bar = ProgressBar()
+    
+    print("n_rollout: ",n_rollout)
+    print("group_size: ",group_size)
+    counter = 0
     for i in bar(range(n_rollout)):
         rollout_idx = thread_idx * n_rollout + i
         group_idx = rollout_idx // group_size
@@ -220,6 +230,8 @@ def gen_Rope(info):
         if rollout_idx % group_size == 0:
             engine.init(param=(num_obj, None, None, None, None))
             torch.save(engine.get_param(), param_file)
+            print("num trajectory: ", counter)
+            counter += 1
         else:
             while not os.path.isfile(param_file):
                 time.sleep(0.5)
@@ -229,8 +241,26 @@ def gen_Rope(info):
         for j in range(time_step):
             states_ctl = engine.get_state()[0]
             act_t = np.zeros((engine.num_obj, action_dim))
-            act_t[0, 0] = (np.random.rand() * 2 - 1.) * act_scale - states_ctl[0] * ret_scale
-
+            
+            # ------- change action generation
+            current_x = states_ctl[0]
+            # if reaches the target
+            if abs(current_x - target_x) < threshold:
+                # Choose a new target_x within bounds
+                while True:
+                    new_target = target_x + np.random.choice([-delta_target, delta_target])
+                    if x_bounds[0] <= new_target <= x_bounds[1]:
+                        target_x = new_target
+                        break
+            
+            act_t[0, 0] = (np.random.rand() * 2 - 1.) * act_scale - (current_x - target_x) * ret_scale
+            # ------- end change action generation
+            
+            
+            # act_t[0, 0] = (np.random.rand() * 2 - 1.) * act_scale - states_ctl[0] * ret_scale
+            
+            
+            
             engine.set_action(action=act_t)
 
             states = engine.get_state()

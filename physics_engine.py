@@ -71,7 +71,7 @@ class RopeEngine(Engine):
 
     def __init__(self, dt, state_dim, action_dim, param_dim,
                  num_mass_range=[4, 8], k_range=[500., 1500.], gravity_range=[-2., -8.],
-                 position_range=[-5, 5], bihop=True):
+                 position_range=[-100, 100], bihop=True):
 
         # state_dim = 4
         # action_dim = 1
@@ -117,7 +117,7 @@ class RopeEngine(Engine):
         self.space = pymunk.Space()
         self.space.gravity = (0., self.gravity)
 
-        self.height = 1.0
+        self.height = 1.0 # initial y height (could be changed)
         self.rest_len = 0.3
 
         self.add_masses()
@@ -142,7 +142,7 @@ class RopeEngine(Engine):
 
             if i == 0:
                 # fix the first mass to a specific height
-                move_joint = pymunk.GrooveJoint(self.space.static_body, body, (-20, y), (20, y), (0, 0))
+                move_joint = pymunk.GrooveJoint(self.space.static_body, body, (-125, y), (125, y), (0, 0))
                 self.space.add(body, shape, move_joint)
             else:
                 self.space.add(body, shape)
@@ -194,7 +194,7 @@ class RopeEngine(Engine):
         self.space.step(self.dt)
 
     def render(self, states, actions=None, param=None, video=True, image=False, path=None,
-               act_scale=None, draw_edge=True, lim=(-2.5, 2.5, -2.5, 2.5), states_gt=None,
+               act_scale=None, draw_edge=True, lim=(-20, 20, -20, 20), states_gt=None,
                count_down=False, gt_border=False):
         if video:
             video_path = path + '.avi'
@@ -215,7 +215,8 @@ class RopeEngine(Engine):
         if actions is not None and actions.ndim == 3:
             '''get the first ball'''
             actions = actions[:, 0, :]
-
+        x_pos = states[0,0,0]
+        lim = (x_pos-10, x_pos+10, x_pos-10,x_pos+10)
         for i in range(time_step):
             fig, ax = plt.subplots(1)
             plt.xlim(lim[0], lim[1])

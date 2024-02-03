@@ -1,7 +1,9 @@
 from config import gen_args
 import os
 from utils import *
-from data import prepare_input
+# from data_object_centric import prepare_input
+# from data import prepare_input
+from data_obj_act_change_y import prepare_input
 from progressbar import ProgressBar
 import multiprocessing as mp
 from socket import gethostname
@@ -11,18 +13,18 @@ args = gen_args()
 data_names = ['attrs', 'states', 'actions']
 prepared_names = ['attrs', 'states', 'actions', 'rel_attrs']
 
-stat_path = os.path.join(args.dataf, 'stat.h5')
-if args.obj != "" and args.obj != "_baseline":
-    stat_path = os.path.join(args.dataf, 'stat_fixed.h5')
+stat_path = os.path.join(args.dataf, 'y_stat.h5')
+# if args.obj != "" and args.obj != "_baseline":
+#     stat_path = os.path.join(args.dataf, 'stat_fixed.h5')
 stat = load_data(data_names, stat_path)
 
 
 def prepare_seq(info):
     phase, rollout_idx = info
-    if args.obj != "" and args.obj != "_baseline":
-        phase += "_fixed"
-    
-    data_dir = os.path.join(args.dataf, phase)
+    # if args.obj != "" and args.obj != "_baseline":
+    #     phase += "_fixed"
+    new_folder = phase + '_change_y'
+    data_dir = os.path.join(args.dataf, new_folder)
     # print(f'working preprocess data in folder {data_dir}')
     if phase == 'extra' and gethostname().startswith('netmit'):
         data_dir = args.dataf + '_' + phase
@@ -71,5 +73,5 @@ num_valid = args.n_rollout - num_train
 infos = [(n_workers, idx, num_train, 'train') for idx in range(n_workers)]
 pool.map(sub_thread, infos)
 
-# infos = [(n_workers, idx, num_valid, 'valid') for idx in range(n_workers)]
-# pool.map(sub_thread, infos)
+infos = [(n_workers, idx, num_valid, 'valid') for idx in range(n_workers)]
+pool.map(sub_thread, infos)

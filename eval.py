@@ -4,7 +4,8 @@ from config import gen_args
 from data import normalize, denormalize
 from models.CompositionalKoopmanOperators import CompositionalKoopmanOperators
 from models.KoopmanBaselineModel import KoopmanBaseline
-from physics_engine import SoftEngine, RopeEngine, SwimEngine
+# from physics_engine import SoftEngine, RopeEngine, SwimEngine
+from physics_engine_y import RopeEngine
 from utils import *
 from utils import to_var, to_np, Tee
 from progressbar import ProgressBar
@@ -22,9 +23,11 @@ prepared_names = ['attrs', 'states', 'actions', 'rel_attrs']
 # if args.obj != "baseline" and args.obj != "":
 #     args.eval_set += '_fixed'
 #     args.stat_path = args.dataf + '/' + 'stat_fixed.h5'
-data_dir = os.path.join(args.dataf, args.eval_set)
 
-print(f"Load stored dataset statistics from {args.stat_path}!")
+# data_dir = os.path.join(args.dataf, args.eval_set)
+change_y_data = args.eval_set + '_change_y'
+data_dir = os.path.join(args.dataf, change_y_data)
+print(f"Load stored dataset statistics from {args.stat_path} and {data_dir}!")
 stat = load_data(data_names, args.stat_path)
 
 if args.env == 'Rope':
