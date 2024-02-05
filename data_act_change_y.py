@@ -169,11 +169,11 @@ def gen_Rope(info):
         for j in range(time_step):
             states = engine.get_state()
             ############################################################## obj x
-            if j == 0:
-                init_pos_x = states[0, 0] # first ball, x postion, at 0 timestep
-                init_pos_y = states[0, 1]
-            states[:, 0] = states[:, 0] - init_pos_x
-            states[:, 1] = states[:, 1] - init_pos_y
+            # if j == 0:
+            #     init_pos_x = states[0, 0] # first ball, x postion, at 0 timestep
+            #     init_pos_y = states[0, 1]
+            # states[:, 0] = states[:, 0] - init_pos_x
+            # states[:, 1] = states[:, 1] - init_pos_y
 
             states_ctl = states[0]
             
@@ -269,9 +269,11 @@ def gen_Rope(info):
 class PhysicsDataset(Dataset):
 
     def __init__(self, args, phase):
+        
         self.args = args
         self.phase = phase
         self.data_dir = os.path.join(self.args.dataf, phase)
+        print(f'\n\n\n\n Loading data at {self.data_dir}')
         if gethostname().startswith('netmit') and phase == 'extra':
             self.data_dir = self.args.dataf + '_' + phase
 

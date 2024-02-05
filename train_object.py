@@ -20,8 +20,8 @@ from config import gen_args
 # from data_object_centric_2 import load_data
 # from data_obj_act import PhysicsDataset
 # from data_obj_act import load_data
-from data_act_change_y import PhysicsDataset
-from data_act_change_y import load_data
+from data_obj_act_change_y import PhysicsDataset
+from data_obj_act_change_y import load_data
 # from data import PhysicsDataset
 # from data import load_data
 from models.CompositionalKoopmanOperators import CompositionalKoopmanOperators
@@ -29,11 +29,12 @@ from utils import count_parameters, Tee, AverageMeter, rand_int, mix_iters, get_
 
 args = gen_args()
 np.random.seed(int(args.seed))
+
 os.system('mkdir -p ' + args.outf)
 os.system('mkdir -p ' + args.dataf)
 tee = Tee(os.path.join(args.outf, 'train.log'), 'w')
 print_args(args)
-print(f"\n\n {args.dataf}")
+
 # generate data
 datasets = {phase: PhysicsDataset(args, phase) for phase in ['train', 'valid']}
 for phase in ['train', 'valid']:
@@ -51,10 +52,10 @@ args.stat = datasets['train'].stat
 is_wandb = True
 if is_wandb:
     import wandb
-    run_name = f"baseline_seed_{args.seed}"
     wandb.init(
     project="Object Centric CKO",
-    name=run_name,
+    dir="runs_obj",
+    name=f"object_seed_{args.seed}",
     # track hyperparameters and run metadata
     config={
     "Object Centric": False,
@@ -62,7 +63,37 @@ if is_wandb:
     }
 )
 
-writer = SummaryWriter()
+def object_centric(states_og):
+    # return states_og
+    states = states_og.clone().detach()
+    bs = states.shape[0]
+    for b in range(bs):
+        first_position = states[b][0][0].clone().detach() # first step, first node, first position
+        states[b,:,:,0] -= first_position[0]
+        states[b,:,:,1] -= first_position[1]
+        # states[b,:,:,2] -= first_position[2]
+        # states[b,:,:,3] -= first_position[3]
+    return states
+
+def reverse_object_centric(states,states_og):
+    # return states
+    shp = states.shape
+    shp1 = list(states_og.shape)
+    shp1[1] -=1
+    states = torch.reshape(states,shp1)
+
+    bs = states.shape[0]
+    for b in range(bs):
+        first_position = states_og[b][0][0].clone().detach() # first step, first node, first position
+        states[b,:,:,0] += first_position[0]
+        states[b,:,:,1] += first_position[1]
+        # states[b,:,:,2] += first_position[2]
+        # states[b,:,:,3] += first_position[3]
+    states = torch.reshape(states, shp)
+    return states
+
+log_dir = f"runs/object_{args.seed}"
+writer = SummaryWriter(log_dir=log_dir)
 
 class ShuffledDataset(Dataset):
     def __init__(self,
