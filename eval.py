@@ -16,7 +16,6 @@ print_args(args)
 '''
 args.fit_num is # of trajectories used for SysID
 '''
-# assert args.group_size - 1 >= args.fit_num
 
 data_names = ['attrs', 'states', 'actions']
 prepared_names = ['attrs', 'states', 'actions', 'rel_attrs']
@@ -25,17 +24,13 @@ prepared_names = ['attrs', 'states', 'actions', 'rel_attrs']
 #     args.stat_path = args.dataf + '/' + 'stat_fixed.h5'
 
 # data_dir = os.path.join(args.dataf, args.eval_set)
-change_y_data = args.eval_set + '_change_y'
-data_dir = os.path.join(args.dataf, change_y_data)
-print(f"Load stored dataset statistics from {args.stat_path} and {data_dir}!")
-stat = load_data(data_names, args.stat_path)
+change_y_data = args.eval_set #+ '_change_y'
+# data_dir = os.path.join(args.dataf, change_y_data)
+# print(f"Load stored dataset statistics from {args.stat_path} and {data_dir}!")
+# stat = load_data(data_names, args.stat_path)
 
 if args.env == 'Rope':
     engine = RopeEngine(args.dt, args.state_dim, args.action_dim, args.param_dim)
-elif args.env == 'Soft':
-    engine = SoftEngine(args.dt, args.state_dim, args.action_dim, args.param_dim)
-elif args.env == 'Swim':
-    engine = SwimEngine(args.dt, args.state_dim, args.action_dim, args.param_dim)
 else:
     assert False
 
@@ -57,7 +52,6 @@ if not args.baseline:
     if args.eval_epoch == -1:
         model_path = os.path.join(args.outf, 'net_best.pth')
     else:
-        
         args.outf += args.obj
         model_path = os.path.join(args.outf, 'net_epoch_%d_iter_%d.pth' % (args.eval_epoch, args.eval_iter))
     print("Loading saved checkpoint from %s" % model_path)
@@ -90,13 +84,23 @@ def get_more_trajectories(roll_idx):
     all_seq = [np.array(all_seq[j], dtype=np.float32) for j in range(4)]
     return all_seq
 
-def eval(idx_rollout, video=True):
+def eval_data(idx_rollout, baseline=True):
     print(f'\n=== Forward Simulation on Example {roll_idx} ===')
-
-    print(os.path.join(data_dir, str(idx_rollout) + '.rollout.h5'))
-    seq_data = load_data(prepared_names, os.path.join(data_dir, str(idx_rollout) + '.rollout.h5'))
+    if baseline:
+        data_dir = os.path.join("data/data_baseline_Rope", args.eval_set)
+        print(os.path.join(data_dir, str(idx_rollout) + '.rollout.h5'))
+        seq_data = load_data(prepared_names, os.path.join(data_dir, str(idx_rollout) + '.rollout.h5'))
+        stat_path = "data/data_baseline_Rope/stat.h5"
+        stat = load_data(data_names, stat_path)
+    else:
+        data_dir = os.path.join("data/data_obj_Rope", args.eval_set)
+        print(os.path.join(data_dir, str(idx_rollout) + '.rollout.h5'))
+        seq_data = load_data(prepared_names, os.path.join(data_dir, str(idx_rollout) + '.rollout.h5'))
+        stat_path = "data/data_obj_Rope/stat.h5"
+        stat = load_data(data_names, stat_path)
     attrs, states, actions, rel_attrs = [to_var(d.copy(), use_gpu=use_gpu) for d in seq_data]
 
+    stat = load_data(data_names, args.stat_path)
     seq_data = denormalize(seq_data, stat)
     attrs_gt, states_gt, action_gt = seq_data[:3]
 
@@ -185,6 +189,32 @@ def eval(idx_rollout, video=True):
 
         s_pred_next = normalize([states_pred[step + 1:step + 2]], [stat[1]])[0]
         s_pred[step + 1:step + 2] = to_var(s_pred_next, use_gpu=use_gpu)
+        
+    return states_pred
+def eval(idx_rollout, video=True):
+    print(f'\n=== Forward Simulation on Example {roll_idx} ===')
+
+    print(os.path.join(data_dir, str(idx_rollout) + '.rollout.h5'))
+    seq_data = load_data(prepared_names, os.path.join(data_dir, str(idx_rollout) + '.rollout.h5'))
+    attrs, states, actions, rel_attrs = [to_var(d.copy(), use_gpu=use_gpu) for d in seq_data]
+
+    seq_data = denormalize(seq_data, stat)
+    attrs_gt, states_gt, action_gt = seq_data[:3]
+
+    param_file = os.path.join(data_dir, str(idx_rollout // args.group_size) + '.param')
+    param = torch.load(param_file)
+    engine.init(param)
+
+    '''
+    fit data
+    '''
+    fit_data = get_more_trajectories(roll_idx)
+    fit_data = [to_var(d, use_gpu=use_gpu) for d in fit_data]
+    bs = args.fit_num
+
+    ''' T x N x D (denormalized)'''
+    states_pred_baseline = eval_data(idx_rollout, 1)
+    states_pred_obj = eval_data(idx_rollout, 0)
 
     if video:
         save_path = "pred_states" + args.obj + ".txt"
