@@ -47,22 +47,22 @@ if args.gen_data:
     os.system('python preprocess_data.py --env ' + args.env)
 
 args.stat = datasets['train'].stat
-
-is_wandb = True
+is_wandb = False
 if is_wandb:
     import wandb
-    run_name = f"baseline_seed_{args.seed}"
     wandb.init(
     project="Object Centric CKO",
-    name=run_name,
+    dir="runs_obj",
+    name=f"object_seed_{args.seed}",
     # track hyperparameters and run metadata
     config={
     "Object Centric": False,
     "Notes": "Baseline Fit_num and Batch size 32, 4k 50/50"
     }
 )
-
-writer = SummaryWriter()
+log_dir = f"runs/baseline_n_splits_1_batch_16_data_80_seed_{args.seed}"
+# log_dir = f"runs/baseline_check_n_splits_1_{args.seed}"
+writer = SummaryWriter(log_dir=log_dir)
 
 class ShuffledDataset(Dataset):
     def __init__(self,
@@ -120,36 +120,6 @@ class ShuffledDataset(Dataset):
         # print('dataset', self.idx, 'sample', idx)
         idx_rollout = self.sample_table[idx][0] + self.n_rollout * self.idx
         idx_timestep = self.sample_table[idx][1]
-
-        # prepare input data
-        seq_data = load_data(self.prepared_names, os.path.join(self.mother.data_dir, str(idx_rollout) + '.rollout.h5'))
-        seq_data = [d[idx_timestep:idx_timestep + args.len_seq + 1] for d in seq_data]
-
-        # prepare fit data
-        fit_idx = rand_int(0, args.group_size - 1)  # new traj idx in group
-        fit_idx = fit_idx + idx_rollout // args.group_size * args.group_size  # new traj idx in global
-        fit_data = load_data(self.prepared_names, os.path.join(self.mother.data_dir, str(fit_idx) + '.rollout.h5'))
-
-        return seq_data, fit_data
-
-
-class SubPreparedDataset(Dataset):
-
-    def __init__(self,
-                 mother_dataset,
-                 idx, ):
-        self.samples_per_rollout = args.time_step - args.len_seq
-        self.mother = mother_dataset
-        self.n_rollout = mother_dataset.n_rollout // args.n_splits
-        self.idx = idx
-        self.prepared_names = ['attrs', 'states', 'actions', 'rel_attrs']
-
-    def __len__(self):
-        return self.n_rollout * self.samples_per_rollout
-
-    def __getitem__(self, idx):
-        idx_rollout = idx // self.samples_per_rollout + self.n_rollout * self.idx
-        idx_timestep = idx % self.samples_per_rollout
 
         # prepare input data
         seq_data = load_data(self.prepared_names, os.path.join(self.mother.data_dir, str(idx_rollout) + '.rollout.h5'))

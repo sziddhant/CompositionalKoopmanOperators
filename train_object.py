@@ -49,7 +49,7 @@ if args.gen_data:
 
 args.stat = datasets['train'].stat
 
-is_wandb = True
+is_wandb = False
 if is_wandb:
     import wandb
     wandb.init(
@@ -92,7 +92,7 @@ def reverse_object_centric(states,states_og):
     states = torch.reshape(states, shp)
     return states
 
-log_dir = f"runs/object_{args.seed}"
+log_dir = f"runs/obj_n_splits_1_batch_16_data_80_seed_{args.seed}"
 writer = SummaryWriter(log_dir=log_dir)
 
 class ShuffledDataset(Dataset):

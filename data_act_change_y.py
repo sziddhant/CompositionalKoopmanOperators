@@ -15,7 +15,7 @@ from physics_engine_y import sample_init_p_flight
 from utils import rand_float, rand_int, calc_dis
 from utils import init_stat, combine_stat, load_data, store_data
 
-# np.random.seed(42)
+np.random.seed(42)
 # ======================================================================================================================
 def normalize(data, stat, var=False):
     for i in range(len(stat)):

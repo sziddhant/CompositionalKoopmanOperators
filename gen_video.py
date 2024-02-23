@@ -11,6 +11,7 @@ from utils import to_var, to_np, Tee
 from progressbar import ProgressBar
 import time
 
+# 135 is baseline, 140 is obj
 args = gen_args()
 print_args(args)
 '''
@@ -20,10 +21,10 @@ args.fit_num is # of trajectories used for SysID
 data_names = ['attrs', 'states', 'actions']
 prepared_names = ['attrs', 'states', 'actions', 'rel_attrs']
 # data_dir = os.path.join(args.dataf, args.eval_set)
-args.stat_path = "data/data_baseline_Rope/stat.h5"
-data_dir = "data/data_baseline_Rope/train"
-print(f"Load stored dataset statistics from {args.stat_path} and {data_dir}!")
-stat = load_data(data_names, args.stat_path)
+# args.stat_path = "data/data_baseline_Rope/stat.h5"
+# data_dir = "data/data_baseline_Rope/train"
+# print(f"Load stored dataset statistics from {args.stat_path} and {data_dir}!")
+# stat = load_data(data_names, args.stat_path)
 
 if args.env == 'Rope':
     engine = RopeEngine(args.dt, args.state_dim, args.action_dim, args.param_dim)
@@ -39,20 +40,13 @@ tee = Tee(log_path, 'w')
 model
 '''
 # build model
-# 135 is baseline, 140 is obj
 use_gpu = torch.cuda.is_available()
 if not args.baseline:
     """ Koopman model for Baseline"""
     model_base = CompositionalKoopmanOperators(args, residual=False, use_gpu=use_gpu)
 
-    # load pretrained checkpoint
-    if args.eval_epoch == -1:
-        model_path = os.path.join(args.outf, 'net_best.pth')
-    else:
-        # model_path = os.path.join(args.outf, 'net_epoch_%d_iter_%d.pth' % (args.eval_epoch, 0))
-        model_path = os.path.join(args.outf, 'net_epoch_%d_iter_%d.pth' % (85, 0))
+    model_path = os.path.join(args.outf, 'net_epoch_%d_iter_%d.pth' % (85, 0))
     
-        # model_path = os.path.join(args.outf, 'net_epoch_%d_iter_%d.pth' % (args.eval_epoch, args.eval_iter))
     print("Loading saved checkpoint from %s" % model_path)
     device = torch.device('cuda:0') if use_gpu else torch.device('cpu')
     model_base.load_state_dict(torch.load(model_path,map_location=device))
@@ -78,7 +72,12 @@ eval
 '''
 
 
-def get_more_trajectories(roll_idx):
+def get_more_trajectories(roll_idx,baseline=True):
+    if baseline:
+        data_dir = os.path.join("data/data_baseline_Rope", args.eval_set)
+    else:
+        data_dir = os.path.join("data/data_obj_Rope", args.eval_set)
+        
     group_idx = roll_idx // args.group_size
     offset = group_idx * args.group_size
 
@@ -94,7 +93,6 @@ def get_more_trajectories(roll_idx):
     return all_seq
 
 def eval_data(model, idx_rollout, baseline=True):
-    baseline = False
     print(f'\n=== Forward Simulation on Example {roll_idx} ===')
     if baseline:
         data_dir = os.path.join("data/data_baseline_Rope", args.eval_set)
@@ -110,7 +108,6 @@ def eval_data(model, idx_rollout, baseline=True):
         stat = load_data(data_names, stat_path)
     attrs, states, actions, rel_attrs = [to_var(d.copy(), use_gpu=use_gpu) for d in seq_data]
 
-    stat = load_data(data_names, args.stat_path)
     seq_data = denormalize(seq_data, stat)
     attrs_gt, states_gt, action_gt = seq_data[:3]
 
@@ -121,7 +118,7 @@ def eval_data(model, idx_rollout, baseline=True):
     '''
     fit data
     '''
-    fit_data = get_more_trajectories(roll_idx)
+    fit_data = get_more_trajectories(roll_idx, baseline)
     fit_data = [to_var(d, use_gpu=use_gpu) for d in fit_data]
     bs = args.fit_num
 
@@ -204,20 +201,19 @@ def eval_data(model, idx_rollout, baseline=True):
 def eval(idx_rollout, video=True):
     print(f'\n=== Forward Simulation on Example {roll_idx} ===')
     
-    data_dir = os.path.join("data/data_obj_Rope", args.eval_set)
+    data_dir = os.path.join("data/data_baseline_Rope", args.eval_set)
     print(os.path.join(data_dir, str(idx_rollout) + '.rollout.h5'))
     seq_data = load_data(prepared_names, os.path.join(data_dir, str(idx_rollout) + '.rollout.h5'))
-    stat_path = "data/data_obj_Rope/stat.h5"
+    stat_path = "data/data_baseline_Rope/stat.h5"
     stat = load_data(data_names, stat_path)
     
+    initial = load_data(prepared_names, os.path.join(data_dir, str(idx_rollout), "0.h5"))
+    initial_pos = initial[1][0][:2] # 1 is state 's idx, 0 is the first ball, :2 is x and y position
 
-    # print(os.path.join(data_dir, str(idx_rollout) + '.rollout.h5'))
-    # seq_data = load_data(prepared_names, os.path.join(data_dir, str(idx_rollout) + '.rollout.h5'))
-    # attrs, states, actions, rel_attrs = [to_var(d.copy(), use_gpu=use_gpu) for d in seq_data]
+    seq_data = denormalize(seq_data, stat)
+    attrs_gt, states_gt, action_gt = seq_data[:3]
 
-    # seq_data = denormalize(seq_data, stat)
-    # attrs_gt, states_gt, action_gt = seq_data[:3]
-
+    data_dir = os.path.join("data/data_obj_Rope", args.eval_set)
     param_file = os.path.join(data_dir, str(idx_rollout // args.group_size) + '.param')
     param = torch.load(param_file)
     engine.init(param)
@@ -225,19 +221,26 @@ def eval(idx_rollout, video=True):
     '''
     fit data
     '''
-    # fit_data = get_more_trajectories(roll_idx)
+    # fit_data = get_more_trajectories(roll_idx,basel)
     # fit_data = [to_var(d, use_gpu=use_gpu) for d in fit_data]
     # bs = args.fit_num
 
     ''' T x N x D (denormalized)'''
-    # states_pred_baseline = eval_data(model_base, idx_rollout, 1)
+    states_pred_baseline = eval_data(model_base, idx_rollout, 1)
     states_pred_obj = eval_data(model_obj, idx_rollout, 0)
+
+
+    for timesteps in states_pred_obj:
+        for obj in timesteps:
+            obj[0] += initial_pos[0]
+            obj[1] += initial_pos[1]
+
 
     if video:
         save_path = "pred_states" + args.obj + ".txt"
         with open(save_path, 'a') as f:
             f.write("-----------------------------------------------------------------------\n")
-            for sublist in states_pred_baseline:
+            for sublist in states_pred_obj:
                 line = '\n'.join(map(str, sublist))
                 f.write(f"{line}\n")
                 f.write("\n")
@@ -246,7 +249,7 @@ def eval(idx_rollout, video=True):
         #               states_gt=states_gt)
         engine.render_cmp(states=states_pred_baseline, states_obj=states_pred_obj,video=True,
                       path=os.path.join(args.evalf, str(idx_rollout) + '.pred'),
-                      states_gt=None)
+                      states_gt=states_gt)
         # print(states_gt.shape)
         # for t in states_gt:
         #     print(t)

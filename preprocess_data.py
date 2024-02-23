@@ -9,11 +9,18 @@ import multiprocessing as mp
 from socket import gethostname
 
 args = gen_args()
-
+args.dataf = 'data/data_obj_Rope'
+# print('\n\n')
+# print(args.obj, args.dataf)
+# exit()
 data_names = ['attrs', 'states', 'actions']
 prepared_names = ['attrs', 'states', 'actions', 'rel_attrs']
 
-stat_path = os.path.join(args.dataf, 'y_stat.h5')
+# if args.obj == 'obj':
+#     stat_path = os.path.join(args.dataf, 'stat_obj.h5')
+# else:
+#     stat_path = os.path.join(args.dataf, 'stat_baseline.h5')
+stat_path = os.path.join(args.dataf, 'stat.h5')
 # if args.obj != "" and args.obj != "_baseline":
 #     stat_path = os.path.join(args.dataf, 'stat_fixed.h5')
 stat = load_data(data_names, stat_path)
@@ -23,9 +30,10 @@ def prepare_seq(info):
     phase, rollout_idx = info
     # if args.obj != "" and args.obj != "_baseline":
     #     phase += "_fixed"
-    new_folder = phase + '_change_y'
-    data_dir = os.path.join(args.dataf, new_folder)
     # print(f'working preprocess data in folder {data_dir}')
+    data_dir = os.path.join(args.dataf, phase)
+    print(args.dataf,data_dir)
+    # exit()
     if phase == 'extra' and gethostname().startswith('netmit'):
         data_dir = args.dataf + '_' + phase
 

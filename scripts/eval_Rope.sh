@@ -8,8 +8,6 @@ CUDA_VISIBLE_DEVICES=0 python eval.py \
   --fit_type structured \
 	--fit_num 32 \
   --batch_size 32 \
-  --eval_epoch 600 \
+  --eval_epoch 90 \
   --eval_iter 0 \
-  --eval_set train
-  # --group_size 45\
-	# --eval_set demo \
+  --eval_set train \

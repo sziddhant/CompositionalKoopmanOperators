@@ -199,7 +199,7 @@ class RopeEngine(Engine):
         self.space.step(self.dt)
 
     def render(self, states, actions=None, param=None, video=True, image=False, path=None,
-               act_scale=None, draw_edge=True, lim=(-20, 20, -20, 20), states_gt=None,
+               act_scale=None, draw_edge=True, lim=(-10, 10, -10, 10), states_gt=None,
                count_down=False, gt_border=False):
         if video:
             video_path = path + '.avi'
@@ -262,6 +262,117 @@ class RopeEngine(Engine):
                 else:
                     ax.arrow(states[i, 0, 0] + F / normF * 0.1, states[i, 0, 1],
                              F, 0., fc='Orange', ec='Orange', width=0.04, head_width=0.2, head_length=0.2)
+
+            ax.set_aspect('equal')
+
+            font = {'family': 'serif',
+                    'color': 'darkred',
+                    'weight': 'normal',
+                    'size': 16}
+            if count_down:
+                plt.text(-2.5, 1.5, 'CountDown: %d' % (time_step - i - 1), fontdict=font)
+
+            plt.tight_layout()
+
+            if video:
+                fig.canvas.draw()
+                frame = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+                frame = frame.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                out.write(frame)
+                if i == time_step - 1:
+                    for _ in range(5):
+                        out.write(frame)
+
+            if image:
+                plt.savefig(os.path.join(image_path, 'fig_%s.png' % i), bbox_inches='tight')
+
+            plt.close()
+
+        if video:
+            out.release()
+    
+        
+    def render_cmp(self, states, states_obj=None, actions=None, video=True, image=False, path=None,
+                lim=(-5, 5, -5, 5),draw_edge=True, count_down=False, states_gt=None):
+        radius = 0.06
+        if video:
+            video_path = path + '.avi'
+            fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
+            print('Save video as %s' % video_path)
+            out = cv2.VideoWriter(video_path, fourcc, 25, (640, 480))
+
+        if image:
+            image_path = path + '_img'
+            print('Save images to %s' % image_path)
+            os.system('mkdir -p %s' % image_path)
+
+        c = ['royalblue', 'tomato', 'limegreen', 'orange', 'violet', 'chocolate', 'lightsteelblue']
+
+        time_step = states.shape[0]
+        n_ball = states.shape[1]
+
+        if actions is not None and actions.ndim == 3:
+            '''get the first ball'''
+            actions = actions[:, 0, :]
+
+        for i in range(time_step):
+            fig, ax = plt.subplots(1)
+            plt.xlim(lim[0], lim[1])
+            plt.ylim(lim[2], lim[3])
+            plt.axis('off')
+
+            if draw_edge:
+                cnt = 0
+                for x in range(n_ball - 1):
+                    plt.plot([states[i, x, 0], states[i, x + 1, 0]],
+                                [states[i, x, 1], states[i, x + 1, 1]],
+                                '-', color=c[-1], lw=2, alpha=0.5)
+
+            circles = []
+            circles_color = []
+            for j in range(n_ball):
+                circle = Circle((states[i, j, 0], states[i, j, 1]), radius=radius * 5 / 4)
+                circles.append(circle)
+                circles_color.append(c[0])
+
+            pc = PatchCollection(circles, facecolor=circles_color, linewidth=0, alpha=1.)
+            ax.add_collection(pc)
+
+            if states_gt is not None:
+                circles = []
+                circles_color = []
+                for j in range(n_ball):
+                    circle = Circle((states_gt[i, j, 0], states_gt[i, j, 1]), radius=radius * 5 / 4)
+                    circles.append(circle)
+                    circles_color.append('limegreen')
+                pc = PatchCollection(circles, facecolor=circles_color, linewidth=0, alpha=1.)
+                ax.add_collection(pc)
+                
+            if states_obj is not None:
+                if draw_edge:
+                    cnt = 0
+                    for x in range(n_ball - 1):
+                        plt.plot([states_obj[i, x, 0], states_obj[i, x + 1, 0]],
+                                    [states_obj[i, x, 1], states_obj[i, x + 1, 1]],
+                                    '-', color=c[-1], lw=2, alpha=0.5)
+                circles_alt = []
+                circles_color_alt = []
+                for j in range(n_ball):
+                    circle = Circle((states_obj[i, j, 0], states_obj[i, j, 1]), radius=self.radius * 5 / 4)
+                    circles_alt.append(circle)
+                    circles_color_alt.append('purple')  # Use a different color for alternative states
+                pc_alt = PatchCollection(circles_alt, facecolor=circles_color_alt, linewidth=0, alpha=1.)
+                ax.add_collection(pc_alt)
+
+            if actions is not None:
+                F = actions[i, 0] / 4
+                normF = norm(F)
+                if normF < 1e-10:
+                    pass
+                else:
+                    ax.arrow(states[i, 0, 0] + F / normF * 0.1, states[i, 0, 1],
+                                F, 0., fc='Orange', ec='Orange', width=0.04, head_width=0.2, head_length=0.2)
 
             ax.set_aspect('equal')
 

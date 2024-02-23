@@ -10,8 +10,8 @@ do
     --env Rope \
     --len_seq 64 \
     --I_factor 10 \
-    --batch_size 32 \
-    --fit_num 32 \
+    --batch_size 16 \
+    --fit_num 16 \
     --lr 1e-4 \
     --g_dim 32 \
     --pstep 2 \
